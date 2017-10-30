@@ -33,16 +33,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(torrents) == 0 {
-		fmt.Println("No finished torrents")
-		os.Exit(0)
-	}
-
+	finished := 0
+	all := 0
 	for _, torrent := range torrents {
+		all += 1
 		if torrent.IsFinished == true && torrent.Status == transmission.StatusSeeding {
+			finished += 1
 			t.RemoveTorrents([]*transmission.Torrent{torrent}, true)
 			fmt.Printf("Finished torrent %s (%s) has been removed\n", torrent.Comment, torrent.Name)
 		}
+	}
+
+	if finished == 0 {
+		fmt.Printf("No finished torrents (of %d total)\n", all)
+		os.Exit(0)
 	}
 }
 
