@@ -37,7 +37,7 @@ func main() {
 	all := 0
 	for _, torrent := range torrents {
 		all += 1
-		if torrent.IsFinished == true && torrent.Status == transmission.StatusSeeding {
+		if torrent.Status == transmission.StatusSeeding {
 			finished += 1
 			t.RemoveTorrents([]*transmission.Torrent{torrent}, true)
 			fmt.Printf("Finished torrent %s (%s) has been removed\n", torrent.Comment, torrent.Name)
