@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/odwrtw/transmission"
 )
@@ -24,27 +25,39 @@ func main() {
 		Password: password,
 	}
 
-	if t, err := transmission.New(config); err != nil {
+	t, err := transmission.New(config)
+	if err != nil {
 		logger.Fatalln("Error initializing!", err)
 	}
 
-	if torrents, err := t.GetTorrents(); err != nil {
+	torrents, err := t.GetTorrents()
+	if err != nil {
 		logger.Fatalln("Error getting torrents!", err)
 	}
 
-	finished := 0
+	removed := 0
+	stopped := 0
 	for _, torrent := range torrents {
-		if torrent.Status == transmission.StatusSeeding {
-			finished += 1
-			t.RemoveTorrents([]*transmission.Torrent{torrent}, true)
-			logger.Printf("Finished torrent %s (%s) has been removed\n", torrent.Comment, torrent.Name)
+		switch torrent.Status {
+		case transmission.StatusSeeding:
+		case transmission.StatusSeedPending:
+			if err := torrent.Stop(); err == nil {
+				stopped++
+			} else {
+				logger.Printf("Couldn't stop seeding %s: %v", torrent.Name, err)
+			}
+		case transmission.StatusStopped:
+			if err := t.RemoveTorrents([]*transmission.Torrent{torrent}, true); err == nil {
+				removed++
+				doneAge := time.Since(time.Unix(int64(torrent.DoneDate), 0))
+				logger.Printf("Removed %s (%s done)", torrent.Name, doneAge.String())
+			} else {
+				logger.Printf("Couldn't remove %s: %v", torrent.Name, err)
+			}
 		}
 	}
 
-	if finished == 0 {
-		logger.Printf("No finished torrents (of %d total)\n", len(torrents))
-		os.Exit(0)
-	}
+	logger.Printf("Removed %d, stopped %d (of %d total)\n", removed, stopped, len(torrents))
 }
 
 func initFlags() (string, string, string, string) {
@@ -58,7 +71,8 @@ func initFlags() (string, string, string, string) {
 }
 
 func initLog(path string) *log.Logger {
-	if file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err != nil {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
 		log.Fatalln("Failed to open log file", err)
 	}
 
