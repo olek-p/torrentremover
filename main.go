@@ -38,15 +38,16 @@ func main() {
 	removed := 0
 	stopped := 0
 	for _, torrent := range torrents {
+		doneDate := time.Unix(int64(torrent.DoneDate), 0)
 		switch torrent.Status {
 		case transmission.StatusSeeding, transmission.StatusSeedPending:
 			if err := torrent.Stop(); err == nil {
 				stopped++
+				logger.Printf("Stopped %s (completed %s ago)", torrent.Name, time.Since(doneDate).Round(time.Second).String())
 			} else {
 				logger.Printf("Couldn't stop seeding %s: %v", torrent.Name, err)
 			}
 		case transmission.StatusStopped:
-			doneDate := time.Unix(int64(torrent.DoneDate), 0)
 			if doneDate.Before(time.Now().Add(-24 * time.Hour)) {
 				if err := t.RemoveTorrents([]*transmission.Torrent{torrent}, true); err == nil {
 					removed++
@@ -63,8 +64,8 @@ func main() {
 
 func initFlags() (string, string, string, string) {
 	address := flag.String("address", "127.0.0.1", "IP or domain name address of Transmission, without port or protocol")
-	username := flag.String("username", "", "Username of your Transmission user")
-	password := flag.String("password", "", "Password of your Transmission user")
+	username := flag.String("username", "transmission", "Username of your Transmission user")
+	password := flag.String("password", "transmission", "Password of your Transmission user")
 	logpath := flag.String("log", "/var/log/tr.log", "Path to log file")
 	flag.Parse()
 
