@@ -39,8 +39,7 @@ func main() {
 	stopped := 0
 	for _, torrent := range torrents {
 		switch torrent.Status {
-		case transmission.StatusSeeding:
-		case transmission.StatusSeedPending:
+		case transmission.StatusSeeding, transmission.StatusSeedPending:
 			if err := torrent.Stop(); err == nil {
 				stopped++
 			} else {
@@ -50,7 +49,7 @@ func main() {
 			if err := t.RemoveTorrents([]*transmission.Torrent{torrent}, true); err == nil {
 				removed++
 				doneAge := time.Since(time.Unix(int64(torrent.DoneDate), 0))
-				logger.Printf("Removed %s (%s done)", torrent.Name, doneAge.String())
+				logger.Printf("Removed %s (completed %s ago)", torrent.Name, doneAge.Round(time.Second).String())
 			} else {
 				logger.Printf("Couldn't remove %s: %v", torrent.Name, err)
 			}
