@@ -46,12 +46,14 @@ func main() {
 				logger.Printf("Couldn't stop seeding %s: %v", torrent.Name, err)
 			}
 		case transmission.StatusStopped:
-			if err := t.RemoveTorrents([]*transmission.Torrent{torrent}, true); err == nil {
-				removed++
-				doneAge := time.Since(time.Unix(int64(torrent.DoneDate), 0))
-				logger.Printf("Removed %s (completed %s ago)", torrent.Name, doneAge.Round(time.Second).String())
-			} else {
-				logger.Printf("Couldn't remove %s: %v", torrent.Name, err)
+			doneDate := time.Unix(int64(torrent.DoneDate), 0)
+			if doneDate.Before(time.Now().Add(-24 * time.Hour)) {
+				if err := t.RemoveTorrents([]*transmission.Torrent{torrent}, true); err == nil {
+					removed++
+					logger.Printf("Removed %s (completed %s ago)", torrent.Name, time.Since(doneDate).Round(time.Second).String())
+				} else {
+					logger.Printf("Couldn't remove %s: %v", torrent.Name, err)
+				}
 			}
 		}
 	}
